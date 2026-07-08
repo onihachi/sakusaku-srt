@@ -180,6 +180,170 @@
       color: var(--danger);
     }
 
+    .about-link {
+      flex: 0 0 auto;
+      min-height: 0;
+      padding: 4px 8px;
+      border-color: transparent;
+      background: transparent;
+      color: var(--muted);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .about-link:hover:not(:disabled) {
+      background: transparent;
+      border-color: transparent;
+      color: var(--text);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(6, 8, 11, .68);
+      backdrop-filter: blur(3px);
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      width: min(720px, 100%);
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, .5);
+    }
+
+    .modal-head {
+      position: sticky;
+      top: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      margin-left: auto;
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
+      padding: 0;
+      font-size: 18px;
+      line-height: 1;
+      color: var(--muted);
+    }
+
+    .modal-body {
+      padding: 18px 20px 24px;
+      line-height: 1.7;
+    }
+
+    .modal-body h3 {
+      margin: 20px 0 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .modal-body h3:first-child {
+      margin-top: 0;
+    }
+
+    .modal-body p {
+      margin: 6px 0;
+      color: var(--muted);
+    }
+
+    .modal-body ul {
+      margin: 6px 0;
+      padding-left: 20px;
+      color: var(--muted);
+    }
+
+    .modal-body li {
+      margin: 3px 0;
+    }
+
+    .modal-body kbd {
+      display: inline-block;
+      min-width: 18px;
+      padding: 1px 6px;
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      background: var(--panel-2);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .shortcut-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6px 0;
+    }
+
+    .shortcut-table td {
+      padding: 5px 8px;
+      border-top: 1px solid var(--line-soft);
+      vertical-align: top;
+    }
+
+    .shortcut-table td:first-child {
+      width: 210px;
+      white-space: nowrap;
+    }
+
+    .shortcut-table tr:first-child td {
+      border-top: none;
+    }
+
+    .notes {
+      margin-top: 8px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #12151a;
+    }
+
+    .notes p {
+      margin: 8px 0;
+      color: var(--muted);
+    }
+
+    .notes p:first-child {
+      margin-top: 0;
+    }
+
+    .notes p:last-child {
+      margin-bottom: 0;
+    }
+
+    .notes strong {
+      color: var(--text);
+    }
+
     .main {
       display: grid;
       grid-template-columns: 55fr 45fr;
@@ -560,6 +724,7 @@
         <span class="dirty-dot" id="dirtyDot" aria-label="未保存の変更"></span>
       </div>
       <span class="save-status" id="saveStatus" aria-live="polite"></span>
+      <button type="button" id="aboutBtn" class="about-link">このツールについて</button>
       <input class="file-input" id="videoInput" type="file" accept="video/*,.mp4,.mov,.m4v,.webm">
       <input class="file-input" id="srtInput" type="file" accept=".srt,.txt,text/plain,application/x-subrip">
     </header>
@@ -619,6 +784,46 @@
     <div class="drop-box">動画ファイルまたは字幕ファイルをドロップ</div>
   </div>
 
+  <div class="modal-overlay" id="aboutOverlay" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="aboutTitle">このツールについて</h2>
+        <button type="button" class="modal-close" id="aboutCloseBtn" aria-label="閉じる">×</button>
+      </div>
+      <div class="modal-body">
+        <p>さくさくSRT は、動画を見ながら字幕（SRT）のつなぎ目やタイミングを手早く直すための軽量ツールです。Premiere Pro の自動書き起こしの手直しを主な用途に想定しています。</p>
+
+        <h3>基本の使い方</h3>
+        <ul>
+          <li>動画（MP4）と字幕（SRT／書き起こしテキスト）を、ウィンドウにドラッグ&ドロップするか、上部の「動画を開く」「SRTを開く」から読み込みます。</li>
+          <li>右側のリストで字幕を編集します。行と行の間の「⇧ 結合」ボタンで、隣り合うブロックを1つにまとめられます。</li>
+          <li>ブロックを分けたいときは、テキストの分けたい位置をクリックしてから <kbd>Cmd/Ctrl</kbd>+<kbd>Enter</kbd>（または <kbd>T</kbd> キー・下部の「分割」ボタン）。分割後は次のブロック先頭にカーソルが移るので、続けて刻めます。</li>
+          <li>タイミングは、下部バーの「⏱始を今に」「⏱終を今に」で再生位置に合わせられます。細かい前後移動は ±0.5s ボタンや矢印キーで。</li>
+          <li>下部のタイムラインは、ホイールで拡大縮小、黄色い再生バーをドラッグでスクラブできます。</li>
+          <li>編集が済んだら <kbd>Cmd/Ctrl</kbd>+<kbd>S</kbd> または「保存」で書き出します。</li>
+        </ul>
+
+        <h3>ショートカットキー</h3>
+        <table class="shortcut-table">
+          <tr><td><kbd>Space</kbd></td><td>再生 / 停止</td></tr>
+          <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>0.5秒 戻す / 進める（<kbd>Shift</kbd> 併用で5秒）</td></tr>
+          <tr><td><kbd>,</kbd> / <kbd>.</kbd></td><td>1フレーム（1/30秒）単位で移動</td></tr>
+          <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>前 / 次のブロックへ移動</td></tr>
+          <tr><td><kbd>T</kbd></td><td>アクティブな字幕を分割</td></tr>
+          <tr><td><kbd>Cmd/Ctrl</kbd>+<kbd>Enter</kbd></td><td>カーソル位置で分割（テキスト入力中でも可）</td></tr>
+          <tr><td><kbd>Cmd/Ctrl</kbd>+<kbd>Z</kbd></td><td>元に戻す（<kbd>Shift</kbd> 併用でやり直し）</td></tr>
+          <tr><td><kbd>Cmd/Ctrl</kbd>+<kbd>S</kbd></td><td>保存</td></tr>
+        </table>
+
+        <div class="notes">
+          <p><strong>プライバシー:</strong> 動画やSRTはPC内で読み込むだけで、どこにもアップロードされません。相手の素材も同じく外に出ません。</p>
+          <p><strong>推奨ブラウザ:</strong> 「保存」でのファイル直接上書きはChrome / Edge系の機能です。Safariで開いた場合は自動的に「ダウンロード保存」に切り替わるので、動作はしますが上書きではなくダウンロードになります。</p>
+          <p><strong>自動バックアップ</strong>は各自のブラウザ内に保存される仕組みなので、ファイルを共有しても他人の編集内容が混ざることはありません。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function () {
       'use strict';
@@ -662,7 +867,10 @@
         restoreBanner: document.getElementById('restoreBanner'),
         restoreBtn: document.getElementById('restoreBtn'),
         discardRestoreBtn: document.getElementById('discardRestoreBtn'),
-        dropOverlay: document.getElementById('dropOverlay')
+        dropOverlay: document.getElementById('dropOverlay'),
+        aboutBtn: document.getElementById('aboutBtn'),
+        aboutOverlay: document.getElementById('aboutOverlay'),
+        aboutCloseBtn: document.getElementById('aboutCloseBtn')
       };
 
       let cues = [];
@@ -1860,6 +2068,14 @@
       function handleKeydown(event) {
         const cmd = event.metaKey || event.ctrlKey;
         const key = event.key;
+        // 「このツールについて」モーダル表示中は Esc で閉じるだけ、他ショートカットは無効
+        if (els.aboutOverlay.classList.contains('show')) {
+          if (key === 'Escape') {
+            event.preventDefault();
+            closeAbout();
+          }
+          return;
+        }
         if (cmd) {
           const lower = key.toLowerCase();
           if (lower === 'z' && event.shiftKey) {
@@ -2057,6 +2273,22 @@
         dragDepth = 0;
         els.dropOverlay.classList.remove('show');
       }
+
+      function openAbout() {
+        els.aboutOverlay.classList.add('show');
+        els.aboutCloseBtn.focus();
+      }
+
+      function closeAbout() {
+        els.aboutOverlay.classList.remove('show');
+        els.aboutBtn.focus();
+      }
+
+      els.aboutBtn.addEventListener('click', openAbout);
+      els.aboutCloseBtn.addEventListener('click', closeAbout);
+      els.aboutOverlay.addEventListener('click', event => {
+        if (event.target === els.aboutOverlay) closeAbout();
+      });
 
       els.videoPickBtn.addEventListener('click', () => els.videoInput.click());
       els.srtPickBtn.addEventListener('click', openSrtFile);
