@@ -1,0 +1,2168 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>さくさくSRT</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101113;
+      --panel: #17191d;
+      --panel-2: #20242a;
+      --line: #343942;
+      --line-soft: #262b33;
+      --text: #f2f4f8;
+      --muted: #a5adba;
+      --muted-2: #77808d;
+      --accent: #50c2a8;
+      --accent-2: #f0ba45;
+      --danger: #ff6678;
+      --focus: #78dcca;
+      --shadow: rgba(0, 0, 0, .35);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      font-size: 14px;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+      cursor: pointer;
+      min-height: 28px;
+      padding: 5px 9px;
+      transition: background-color .12s ease, border-color .12s ease, color .12s ease, opacity .12s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: #2a3038;
+      border-color: #4a525e;
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      cursor: default;
+      opacity: .45;
+    }
+
+    input,
+    textarea,
+    select {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #0d0f12;
+      color: var(--text);
+      outline: none;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--focus);
+      box-shadow: 0 0 0 2px rgba(120, 220, 202, .16);
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: 48px minmax(0, 1fr) 42px 48px;
+      height: 100%;
+      min-width: 1100px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--line);
+      background: #14161a;
+      padding: 8px 12px;
+      min-width: 0;
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: 8px;
+      white-space: nowrap;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .title-mark {
+      width: 9px;
+      height: 22px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+    }
+
+    .primary {
+      border-color: rgba(80, 194, 168, .5);
+      background: rgba(80, 194, 168, .15);
+      color: #d9fff7;
+    }
+
+    .file-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .filename {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      margin-left: auto;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dirty-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(240, 186, 69, .14);
+      opacity: 0;
+    }
+
+    .dirty-dot.is-dirty {
+      opacity: 1;
+    }
+
+    .save-status {
+      flex: 0 0 auto;
+      color: var(--accent);
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity .25s ease;
+    }
+
+    .save-status.show {
+      opacity: 1;
+    }
+
+    .save-status.error {
+      color: var(--danger);
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: 55fr 45fr;
+      min-height: 0;
+    }
+
+    .left-pane {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) 42px;
+      min-width: 0;
+      border-right: 1px solid var(--line);
+      background: #0b0c0f;
+    }
+
+    .video-shell {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      padding: 14px;
+      background:
+        linear-gradient(45deg, rgba(255,255,255,.03) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255,255,255,.03) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255,255,255,.03) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,.03) 75%);
+      background-color: #090a0d;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+      background-size: 24px 24px;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      max-height: calc(100vh - 150px);
+      object-fit: contain;
+      background: #000;
+      box-shadow: 0 12px 32px var(--shadow);
+    }
+
+    .subtitle-overlay {
+      position: absolute;
+      left: 5%;
+      right: 5%;
+      bottom: 10%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 2.4em;
+      padding: 0 12px;
+      color: #fff;
+      font-weight: 700;
+      font-size: clamp(20px, 2.6vw, 42px);
+      line-height: 1.28;
+      text-align: center;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      pointer-events: none;
+      text-shadow:
+        -2px -2px 0 #000,
+        2px -2px 0 #000,
+        -2px 2px 0 #000,
+        2px 2px 0 #000,
+        0 3px 8px rgba(0,0,0,.85);
+    }
+
+    .video-empty {
+      position: absolute;
+      color: var(--muted-2);
+      pointer-events: none;
+    }
+
+    .video-shell.has-video .video-empty {
+      display: none;
+    }
+
+    .video-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid var(--line);
+      background: var(--panel);
+      padding: 7px 12px;
+    }
+
+    .time-readout {
+      min-width: 210px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rate-label {
+      margin-left: auto;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .rate-select {
+      width: 78px;
+      min-height: 28px;
+      padding: 3px 7px;
+    }
+
+    .right-pane {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      background: var(--panel);
+    }
+
+    .cue-list {
+      height: 100%;
+      overflow: auto;
+      padding: 8px 10px 18px;
+      scrollbar-gutter: stable;
+    }
+
+    .empty-state {
+      display: grid;
+      place-items: center;
+      height: 100%;
+      min-height: 220px;
+      color: var(--muted-2);
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+    }
+
+    .cue-row {
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: #15181d;
+      padding: 8px;
+      transition: border-color .12s ease, background-color .12s ease;
+    }
+
+    .cue-row:hover {
+      border-color: #3e4652;
+      background: #181c22;
+    }
+
+    .cue-row.active {
+      border-color: rgba(80, 194, 168, .85);
+      background: rgba(80, 194, 168, .09);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .cue-head {
+      display: grid;
+      grid-template-columns: 46px minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+
+    .cue-index {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      min-height: 30px;
+      border-radius: 6px;
+      background: #0f1115;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .cue-index:hover {
+      color: var(--text);
+      background: #242932;
+    }
+
+    .cue-time-label {
+      min-width: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .cue-text {
+      display: block;
+      width: 100%;
+      min-height: 38px;
+      max-height: 180px;
+      resize: none;
+      overflow: hidden;
+      padding: 7px 8px;
+      line-height: 1.45;
+      background: #0f1115;
+    }
+
+    .merge-strip {
+      display: flex;
+      justify-content: center;
+      height: 20px;
+      margin: 1px 0;
+    }
+
+    .merge-btn {
+      min-height: 18px;
+      height: 18px;
+      padding: 0 14px;
+      border-color: transparent;
+      background: transparent;
+      color: var(--muted-2);
+      font-size: 12px;
+      opacity: .42;
+    }
+
+    .merge-strip:hover .merge-btn,
+    .merge-btn:focus {
+      opacity: 1;
+      border-color: rgba(80, 194, 168, .35);
+      background: rgba(80, 194, 168, .1);
+      color: #d9fff7;
+    }
+
+    .bottom-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border-top: 1px solid var(--line);
+      background: #14171b;
+      padding: 6px 10px;
+    }
+
+    .bottom-controls button {
+      min-width: 76px;
+      height: 30px;
+      padding: 4px 9px;
+      white-space: nowrap;
+    }
+
+    .bottom-controls .play-toggle {
+      min-width: 88px;
+      color: #dcfff8;
+      border-color: rgba(80, 194, 168, .42);
+      background: rgba(80, 194, 168, .12);
+    }
+
+    .bottom-controls .danger-action {
+      color: #ffd8de;
+      border-color: rgba(255, 102, 120, .35);
+      background: rgba(255, 102, 120, .08);
+    }
+
+    .timeline-wrap {
+      position: relative;
+      border-top: 1px solid var(--line);
+      background: #111317;
+    }
+
+    #timeline {
+      display: block;
+      width: 100%;
+      height: 48px;
+      cursor: pointer;
+    }
+
+    #timeline.playhead-hover {
+      cursor: grab;
+    }
+
+    #timeline.scrubbing {
+      cursor: grabbing;
+    }
+
+    .timeline-tools {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      display: flex;
+      gap: 4px;
+      padding: 3px;
+      border: 1px solid rgba(52, 57, 66, .7);
+      border-radius: 7px;
+      background: rgba(17, 19, 23, .86);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+    }
+
+    .timeline-tools button {
+      min-width: 30px;
+      min-height: 26px;
+      padding: 2px 7px;
+      font-size: 12px;
+    }
+
+    .timeline-tools .fit-btn {
+      min-width: 46px;
+    }
+
+    .banner {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 12px;
+      z-index: 12;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      border: 1px solid rgba(240, 186, 69, .45);
+      border-radius: var(--radius);
+      background: rgba(33, 28, 18, .96);
+      color: #f8e7bf;
+      box-shadow: 0 12px 28px var(--shadow);
+    }
+
+    .banner.show {
+      display: flex;
+    }
+
+    .banner-text {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .drop-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(7, 10, 13, .72);
+      backdrop-filter: blur(3px);
+      pointer-events: none;
+    }
+
+    .drop-overlay.show {
+      display: flex;
+    }
+
+    .drop-box {
+      width: min(520px, 72vw);
+      border: 2px dashed rgba(80, 194, 168, .75);
+      border-radius: 8px;
+      background: rgba(18, 24, 28, .9);
+      padding: 28px;
+      text-align: center;
+      color: #dcfff8;
+      font-size: 18px;
+      box-shadow: 0 18px 48px var(--shadow);
+    }
+
+    @media (max-width: 1180px) {
+      .topbar {
+        gap: 6px;
+        padding-inline: 8px;
+      }
+
+      .cue-head {
+        grid-template-columns: 42px minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="title" aria-label="さくさくSRT">
+        <span class="title-mark" aria-hidden="true"></span>
+        <span>さくさくSRT</span>
+      </div>
+      <button type="button" id="videoPickBtn">動画を開く</button>
+      <button type="button" id="srtPickBtn">SRTを開く</button>
+      <button type="button" id="saveBtn" class="primary">保存</button>
+      <button type="button" id="exportBtn">書き出し</button>
+      <button type="button" id="undoBtn">元に戻す</button>
+      <button type="button" id="redoBtn">やり直し</button>
+      <div class="filename" id="filenameDisplay" title="ファイル未読込">
+        <span>SRT未読込 / 動画未読込</span>
+        <span class="dirty-dot" id="dirtyDot" aria-label="未保存の変更"></span>
+      </div>
+      <span class="save-status" id="saveStatus" aria-live="polite"></span>
+      <input class="file-input" id="videoInput" type="file" accept="video/*,.mp4,.mov,.m4v,.webm">
+      <input class="file-input" id="srtInput" type="file" accept=".srt,.txt,text/plain,application/x-subrip">
+    </header>
+
+    <main class="main">
+      <section class="left-pane" aria-label="動画プレビュー">
+        <div class="video-shell" id="videoShell">
+          <video id="video" controls playsinline></video>
+          <div class="subtitle-overlay" id="subtitleOverlay"></div>
+          <div class="video-empty">動画を開くか、ここへドロップ</div>
+        </div>
+        <div class="video-controls">
+          <div class="time-readout" id="timeReadout">00:00:00.000 / 00:00:00.000</div>
+          <label class="rate-label" for="rateSelect">再生速度</label>
+          <select class="rate-select" id="rateSelect">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="right-pane" aria-label="字幕リスト">
+        <div class="banner" id="restoreBanner">
+          <div class="banner-text">前回の編集があります</div>
+          <button type="button" id="restoreBtn">復元する</button>
+          <button type="button" id="discardRestoreBtn">破棄</button>
+        </div>
+        <div class="cue-list" id="cueList"></div>
+      </section>
+    </main>
+
+    <div class="bottom-controls" aria-label="編集操作">
+      <button type="button" id="seekBackBtn">⏪ −0.5s</button>
+      <button type="button" id="playToggleBtn" class="play-toggle">▶ 再生</button>
+      <button type="button" id="seekForwardBtn">+0.5s ⏩</button>
+      <button type="button" id="startNowBtn">⏱始を今に</button>
+      <button type="button" id="endNowBtn">⏱終を今に</button>
+      <button type="button" id="splitTargetBtn" title="アクティブな字幕を分割 (T / Cmd+Enter)">分割</button>
+      <button type="button" id="deleteTargetBtn" class="danger-action">削除</button>
+    </div>
+
+    <footer class="timeline-wrap" aria-label="タイムライン">
+      <canvas id="timeline" height="48"></canvas>
+      <div class="timeline-tools" aria-label="タイムライン表示">
+        <button type="button" id="zoomOutBtn" title="ズームアウト">−</button>
+        <button type="button" id="zoomInBtn" title="ズームイン">＋</button>
+        <button type="button" id="zoomFitBtn" class="fit-btn" title="全体表示">全体</button>
+      </div>
+    </footer>
+  </div>
+
+  <div class="drop-overlay" id="dropOverlay">
+    <div class="drop-box">動画ファイルまたは字幕ファイルをドロップ</div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const AUTO_SCROLL_PAUSE_MS = 3000;
+      const AUTOSAVE_DELAY_MS = 1000;
+      const UNDO_LIMIT = 200;
+      const CARET_SEEK_DELAY_MS = 150;
+      const TIMELINE_MIN_ZOOM = 1;
+      const TIMELINE_MAX_ZOOM = 50;
+
+      const els = {
+        videoPickBtn: document.getElementById('videoPickBtn'),
+        srtPickBtn: document.getElementById('srtPickBtn'),
+        saveBtn: document.getElementById('saveBtn'),
+        exportBtn: document.getElementById('exportBtn'),
+        undoBtn: document.getElementById('undoBtn'),
+        redoBtn: document.getElementById('redoBtn'),
+        videoInput: document.getElementById('videoInput'),
+        srtInput: document.getElementById('srtInput'),
+        filenameDisplay: document.getElementById('filenameDisplay'),
+        dirtyDot: document.getElementById('dirtyDot'),
+        saveStatus: document.getElementById('saveStatus'),
+        videoShell: document.getElementById('videoShell'),
+        video: document.getElementById('video'),
+        subtitleOverlay: document.getElementById('subtitleOverlay'),
+        timeReadout: document.getElementById('timeReadout'),
+        rateSelect: document.getElementById('rateSelect'),
+        cueList: document.getElementById('cueList'),
+        seekBackBtn: document.getElementById('seekBackBtn'),
+        playToggleBtn: document.getElementById('playToggleBtn'),
+        seekForwardBtn: document.getElementById('seekForwardBtn'),
+        startNowBtn: document.getElementById('startNowBtn'),
+        endNowBtn: document.getElementById('endNowBtn'),
+        splitTargetBtn: document.getElementById('splitTargetBtn'),
+        deleteTargetBtn: document.getElementById('deleteTargetBtn'),
+        timeline: document.getElementById('timeline'),
+        zoomOutBtn: document.getElementById('zoomOutBtn'),
+        zoomInBtn: document.getElementById('zoomInBtn'),
+        zoomFitBtn: document.getElementById('zoomFitBtn'),
+        restoreBanner: document.getElementById('restoreBanner'),
+        restoreBtn: document.getElementById('restoreBtn'),
+        discardRestoreBtn: document.getElementById('discardRestoreBtn'),
+        dropOverlay: document.getElementById('dropOverlay')
+      };
+
+      let cues = [];
+      let nextCueId = 1;
+      let undoStack = [];
+      let redoStack = [];
+      let rowById = new Map();
+      let activeCueId = null;
+      let lastSelectedCueId = null;
+      let srtFileName = '';
+      let srtFileLastModified = 0;
+      let srtFileHandle = null;
+      let videoFileName = '';
+      let videoUrl = '';
+      let dirty = false;
+      let autosaveTimer = 0;
+      let saveStatusTimer = 0;
+      let pendingRestore = null;
+      let suppressAutoScrollUntil = 0;
+      let ignoreListScrollUntil = 0;
+      let virtualTime = 0;
+      let rafTimelinePending = false;
+      let dragDepth = 0;
+      const textEditUndoOpen = new Set();
+      const caretById = new Map();
+      let pendingAutoGrowTextareas = [];
+      let caretSeekTimer = 0;
+      let timelineZoom = 1;
+      let timelineStart = 0;
+      let timelineDrag = null;
+
+      const srtTimePattern = '\\d{1,2}:\\d{2}:\\d{2}(?:[,.]\\d{1,3})?';
+      const dropFrameTimePattern = '\\d{1,2};\\d{2};\\d{2};\\d{2}';
+      const colonFrameTimePattern = '\\d{1,2}:\\d{2}:\\d{2}:\\d{2}';
+      const msRangeRe = new RegExp('^\\s*(' + srtTimePattern + ')\\s*-->\\s*(' + srtTimePattern + ')');
+      const frameRangeRe = new RegExp('^\\s*(' + dropFrameTimePattern + '|' + colonFrameTimePattern + ')(?:\\s*-->\\s*|\\s+-\\s+)(' + dropFrameTimePattern + '|' + colonFrameTimePattern + ')\\s*$');
+
+      function cloneCues(source) {
+        return source.map(cue => ({
+          id: cue.id,
+          start: cue.start,
+          end: cue.end,
+          text: cue.text
+        }));
+      }
+
+      function normalizeCue(cue) {
+        cue.start = Number.isFinite(cue.start) ? Math.max(0, cue.start) : 0;
+        cue.end = Number.isFinite(cue.end) ? Math.max(0, cue.end) : cue.start;
+        if (cue.start > cue.end) cue.end = cue.start;
+        cue.text = cue.text == null ? '' : String(cue.text);
+      }
+
+      function normalizeAllCues() {
+        cues.forEach(normalizeCue);
+        cues.sort((a, b) => (a.start - b.start) || (a.end - b.end) || (a.id - b.id));
+        nextCueId = cues.reduce((max, cue) => Math.max(max, cue.id), 0) + 1;
+      }
+
+      function pushUndoSnapshot() {
+        undoStack.push(cloneCues(cues));
+        if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+        redoStack = [];
+        updateUndoRedoButtons();
+      }
+
+      function afterMutation(options) {
+        normalizeAllCues();
+        if (lastSelectedCueId != null && indexById(lastSelectedCueId) === -1) lastSelectedCueId = null;
+        clampTimelineView();
+        setDirty(true);
+        if (options && options.render === 'none') {
+          updateActiveCue();
+          updateTargetControls();
+          scheduleTimelineDraw();
+          scheduleAutosave();
+          updateUndoRedoButtons();
+          return;
+        }
+        renderCueList();
+        updateAllDerivedViews();
+        scheduleAutosave();
+        updateUndoRedoButtons();
+        updateTargetControls();
+      }
+
+      function mutate(fn, options) {
+        pushUndoSnapshot();
+        fn();
+        afterMutation(options);
+      }
+
+      function setDirty(value) {
+        dirty = Boolean(value);
+        els.dirtyDot.classList.toggle('is-dirty', dirty);
+      }
+
+      function updateUndoRedoButtons() {
+        els.undoBtn.disabled = undoStack.length === 0;
+        els.redoBtn.disabled = redoStack.length === 0;
+        updateSaveButton();
+      }
+
+      function updateSaveButton() {
+        els.saveBtn.disabled = cues.length === 0;
+      }
+
+      function formatStatusTime(date) {
+        return pad2(date.getHours()) + ':' + pad2(date.getMinutes());
+      }
+
+      function showSaveStatus(message, isError) {
+        window.clearTimeout(saveStatusTimer);
+        els.saveStatus.textContent = message;
+        els.saveStatus.classList.toggle('error', Boolean(isError));
+        els.saveStatus.classList.add('show');
+        saveStatusTimer = window.setTimeout(() => {
+          els.saveStatus.classList.remove('show');
+        }, 2500);
+      }
+
+      function currentStorageKey() {
+        return srtFileName ? 'sakusaku:' + srtFileName : '';
+      }
+
+      function scheduleAutosave() {
+        window.clearTimeout(autosaveTimer);
+        if (!dirty || cues.length === 0) return;
+        const key = currentStorageKey();
+        if (!key) return;
+        autosaveTimer = window.setTimeout(() => {
+          try {
+            localStorage.setItem(key, JSON.stringify({
+              cues: cloneCues(cues),
+              savedAt: Date.now(),
+              videoName: videoFileName
+            }));
+          } catch (error) {
+            console.warn('autosave failed', error);
+          }
+        }, AUTOSAVE_DELAY_MS);
+      }
+
+      function clearAutosaveForCurrentFile() {
+        const key = currentStorageKey();
+        if (!key) return;
+        try {
+          localStorage.removeItem(key);
+        } catch (error) {
+          console.warn('autosave clear failed', error);
+        }
+      }
+
+      function checkRestoreCandidate() {
+        hideRestoreBanner();
+        const key = currentStorageKey();
+        if (!key) return;
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) return;
+          const saved = JSON.parse(raw);
+          if (!saved || !Array.isArray(saved.cues) || !saved.savedAt) return;
+          if (srtFileLastModified && saved.savedAt <= srtFileLastModified) return;
+          pendingRestore = {
+            key,
+            cues: saved.cues,
+            savedAt: saved.savedAt,
+            videoName: saved.videoName || ''
+          };
+          els.restoreBanner.classList.add('show');
+        } catch (error) {
+          console.warn('restore check failed', error);
+        }
+      }
+
+      function hideRestoreBanner() {
+        pendingRestore = null;
+        els.restoreBanner.classList.remove('show');
+      }
+
+      function restoreAutosave() {
+        if (!pendingRestore) return;
+        cues = cloneCues(pendingRestore.cues);
+        normalizeAllCues();
+        undoStack = [];
+        redoStack = [];
+        lastSelectedCueId = null;
+        caretById.clear();
+        setDirty(true);
+        renderCueList();
+        updateAllDerivedViews();
+        scheduleAutosave();
+        updateUndoRedoButtons();
+        hideRestoreBanner();
+      }
+
+      function discardAutosave() {
+        if (pendingRestore && pendingRestore.key) {
+          try {
+            localStorage.removeItem(pendingRestore.key);
+          } catch (error) {
+            console.warn('autosave discard failed', error);
+          }
+        }
+        hideRestoreBanner();
+      }
+
+      function updateFilenameDisplay() {
+        const srtName = srtFileName || 'SRT未読込';
+        const vidName = videoFileName || '動画未読込';
+        const text = srtName + ' / ' + vidName;
+        els.filenameDisplay.firstElementChild.textContent = text;
+        els.filenameDisplay.title = text;
+      }
+
+      function parseSrtTime(value) {
+        const match = String(value).trim().match(/^(\d{1,2}):(\d{2}):(\d{2})(?:[,.](\d{1,3}))?$/);
+        if (!match) return null;
+        const hours = Number(match[1]);
+        const minutes = Number(match[2]);
+        const seconds = Number(match[3]);
+        if (minutes > 59 || seconds > 59) return null;
+        const millis = match[4] ? Number(match[4].padEnd(3, '0')) : 0;
+        return hours * 3600 + minutes * 60 + seconds + millis / 1000;
+      }
+
+      function parseFrameTime(value) {
+        const raw = String(value).trim();
+        const dropFrame = raw.includes(';');
+        const parts = raw.split(dropFrame ? ';' : ':').map(Number);
+        if (parts.length !== 4 || parts.some(part => !Number.isInteger(part) || part < 0)) return null;
+        const [hours, minutes, seconds, frames] = parts;
+        if (minutes > 59 || seconds > 59 || frames > 29) return null;
+        if (dropFrame) {
+          const totalMinutes = hours * 60 + minutes;
+          const frameNumber = (hours * 3600 + minutes * 60 + seconds) * 30 + frames - 2 * (totalMinutes - Math.floor(totalMinutes / 10));
+          return frameNumber / 29.97;
+        }
+        return hours * 3600 + minutes * 60 + seconds + frames / 30;
+      }
+
+      function parseTimeRange(line) {
+        const msMatch = String(line).match(msRangeRe);
+        if (msMatch) {
+          const start = parseSrtTime(msMatch[1]);
+          const end = parseSrtTime(msMatch[2]);
+          if (start == null || end == null) return null;
+          return { start, end, frameBased: false };
+        }
+        const frameMatch = String(line).match(frameRangeRe);
+        if (frameMatch) {
+          const start = parseFrameTime(frameMatch[1]);
+          const end = parseFrameTime(frameMatch[2]);
+          if (start == null || end == null) return null;
+          return { start, end, frameBased: true };
+        }
+        return null;
+      }
+
+      function parseSrt(text) {
+        const normalized = String(text || '')
+          .replace(/^\uFEFF/, '')
+          .replace(/\r\n/g, '\n')
+          .replace(/\r/g, '\n');
+        const lines = normalized.split('\n');
+        const parsed = [];
+        let i = 0;
+        while (i < lines.length) {
+          while (i < lines.length && lines[i].trim() === '') i++;
+          if (i >= lines.length) break;
+
+          const block = [];
+          while (i < lines.length && lines[i].trim() !== '') {
+            block.push(lines[i]);
+            i++;
+          }
+
+          const timeIndex = block.findIndex(line => parseTimeRange(line));
+          if (timeIndex === -1) continue;
+
+          const range = parseTimeRange(block[timeIndex]);
+          if (!range) continue;
+          let textLines = block.slice(timeIndex + 1);
+          if (range.frameBased && textLines.length >= 2) {
+            textLines = textLines.slice(1);
+          }
+
+          const cue = {
+            id: nextCueId++,
+            start: range.start,
+            end: range.end,
+            text: textLines.join('\n')
+          };
+          normalizeCue(cue);
+          parsed.push(cue);
+        }
+        parsed.sort((a, b) => (a.start - b.start) || (a.end - b.end) || (a.id - b.id));
+        return parsed;
+      }
+
+      function pad2(value) {
+        return String(value).padStart(2, '0');
+      }
+
+      function pad3(value) {
+        return String(value).padStart(3, '0');
+      }
+
+      function formatDisplayTime(seconds) {
+        const totalMs = Math.max(0, Math.round((Number(seconds) || 0) * 1000));
+        const ms = totalMs % 1000;
+        const totalSeconds = Math.floor(totalMs / 1000);
+        const sec = totalSeconds % 60;
+        const min = Math.floor(totalSeconds / 60) % 60;
+        const hour = Math.floor(totalSeconds / 3600);
+        return pad2(hour) + ':' + pad2(min) + ':' + pad2(sec) + '.' + pad3(ms);
+      }
+
+      function formatSrtTime(seconds) {
+        return formatDisplayTime(seconds).replace('.', ',');
+      }
+
+      function formatCompactTime(seconds) {
+        const totalTenths = Math.max(0, Math.round((Number(seconds) || 0) * 10));
+        const tenth = totalTenths % 10;
+        const totalSeconds = Math.floor(totalTenths / 10);
+        const sec = totalSeconds % 60;
+        const minTotal = Math.floor(totalSeconds / 60);
+        const min = minTotal % 60;
+        const hour = Math.floor(minTotal / 60);
+        if (hour > 0) return hour + ':' + pad2(min) + ':' + pad2(sec) + '.' + tenth;
+        return minTotal + ':' + pad2(sec) + '.' + tenth;
+      }
+
+      function formatCompactRange(cue) {
+        return formatCompactTime(cue.start) + ' – ' + formatCompactTime(cue.end);
+      }
+
+      function serializeSrt(source) {
+        return source.map((cue, index) => {
+          const text = String(cue.text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').join('\r\n');
+          return [
+            String(index + 1),
+            formatSrtTime(cue.start) + ' --> ' + formatSrtTime(cue.end),
+            text
+          ].join('\r\n');
+        }).join('\r\n\r\n') + (source.length ? '\r\n' : '');
+      }
+
+      function loadSrtText(text, options) {
+        nextCueId = 1;
+        cues = parseSrt(text);
+        normalizeAllCues();
+        undoStack = [];
+        redoStack = [];
+        activeCueId = null;
+        lastSelectedCueId = null;
+        caretById.clear();
+        timelineZoom = 1;
+        timelineStart = 0;
+        textEditUndoOpen.clear();
+        setDirty(false);
+        hideRestoreBanner();
+        renderCueList();
+        updateAllDerivedViews();
+        updateUndoRedoButtons();
+        if (!(options && options.skipRestoreCheck)) checkRestoreCandidate();
+      }
+
+      function loadSrtFile(file, handle) {
+        if (!file) return;
+        srtFileHandle = handle || null;
+        const reader = new FileReader();
+        reader.onload = () => {
+          srtFileName = file.name || 'subtitle.srt';
+          srtFileLastModified = file.lastModified || 0;
+          updateFilenameDisplay();
+          loadSrtText(reader.result || '');
+        };
+        reader.readAsText(file);
+      }
+
+      async function openSrtFile() {
+        if (!window.showOpenFilePicker) {
+          els.srtInput.click();
+          return;
+        }
+        try {
+          const handles = await window.showOpenFilePicker({
+            types: [{
+              description: 'SRT/テキスト',
+              accept: {
+                'text/plain': ['.srt', '.txt'],
+                'application/x-subrip': ['.srt']
+              }
+            }],
+            excludeAcceptAllOption: false,
+            multiple: false
+          });
+          const handle = handles && handles[0];
+          if (!handle) return;
+          const file = await handle.getFile();
+          loadSrtFile(file, handle);
+        } catch (error) {
+          if (error && error.name === 'AbortError') return;
+          console.warn('open file picker failed', error);
+          els.srtInput.click();
+        }
+      }
+
+      function loadVideoFile(file) {
+        if (!file) return;
+        if (videoUrl) URL.revokeObjectURL(videoUrl);
+        videoUrl = URL.createObjectURL(file);
+        videoFileName = file.name || 'video';
+        els.video.src = videoUrl;
+        els.video.load();
+        els.videoShell.classList.add('has-video');
+        updateFilenameDisplay();
+        updatePlaybackButton();
+        scheduleTimelineDraw();
+        updateTimeReadout();
+      }
+
+      function exportSrt() {
+        const srt = serializeSrt(cues);
+        const blob = new Blob([srt], { type: 'application/x-subrip;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const base = srtFileName || 'sakusaku.srt';
+        link.href = url;
+        link.download = /\.(srt|txt)$/i.test(base) ? base.replace(/\.(srt|txt)$/i, '.srt') : base + '.srt';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setDirty(false);
+        window.clearTimeout(autosaveTimer);
+        clearAutosaveForCurrentFile();
+      }
+
+      function suggestedSrtName() {
+        const base = srtFileName || 'sakusaku.srt';
+        return /\.(srt|txt)$/i.test(base) ? base.replace(/\.(srt|txt)$/i, '.srt') : base + '.srt';
+      }
+
+      async function ensureWritePermission(handle) {
+        if (!handle || typeof handle.queryPermission !== 'function') return true;
+        let permission = await handle.queryPermission({ mode: 'readwrite' });
+        if (permission === 'granted') return true;
+        if (typeof handle.requestPermission !== 'function') return false;
+        permission = await handle.requestPermission({ mode: 'readwrite' });
+        return permission === 'granted';
+      }
+
+      async function writeSrtToHandle(handle) {
+        const writable = await handle.createWritable();
+        await writable.write(serializeSrt(cues));
+        await writable.close();
+      }
+
+      async function saveSrt() {
+        if (cues.length === 0) return;
+        try {
+          let handle = srtFileHandle;
+          if (!handle) {
+            if (!window.showSaveFilePicker) {
+              exportSrt();
+              return;
+            }
+            try {
+              handle = await window.showSaveFilePicker({
+                suggestedName: suggestedSrtName(),
+                types: [{
+                  description: 'SRT',
+                  accept: {
+                    'application/x-subrip': ['.srt'],
+                    'text/plain': ['.srt']
+                  }
+                }],
+                excludeAcceptAllOption: false
+              });
+            } catch (error) {
+              if (error && error.name === 'AbortError') return;
+              throw error;
+            }
+            srtFileHandle = handle;
+            srtFileName = handle.name || suggestedSrtName();
+            srtFileLastModified = 0;
+            updateFilenameDisplay();
+          }
+
+          const permitted = await ensureWritePermission(handle);
+          if (!permitted) throw new Error('write permission denied');
+          await writeSrtToHandle(handle);
+          setDirty(false);
+          window.clearTimeout(autosaveTimer);
+          clearAutosaveForCurrentFile();
+          showSaveStatus('保存しました ' + formatStatusTime(new Date()), false);
+        } catch (error) {
+          console.warn('save failed', error);
+          showSaveStatus('保存に失敗しました', true);
+        }
+      }
+
+      function getDurationFallback() {
+        const videoDuration = els.video.duration;
+        if (Number.isFinite(videoDuration) && videoDuration > 0) return videoDuration;
+        const cueEnd = cues.reduce((max, cue) => Math.max(max, cue.end), 0);
+        return Math.max(cueEnd, virtualTime, 0);
+      }
+
+      function getCurrentTime() {
+        const videoDuration = els.video.duration;
+        if (Number.isFinite(videoDuration) && els.video.readyState > 0) return els.video.currentTime || 0;
+        return virtualTime;
+      }
+
+      function seek(time) {
+        const duration = getDurationFallback();
+        const clamped = Math.max(0, duration > 0 ? Math.min(time, duration) : time);
+        virtualTime = clamped;
+        if (els.video.readyState > 0) {
+          try {
+            els.video.currentTime = clamped;
+          } catch (error) {
+            virtualTime = clamped;
+          }
+        }
+        updateAllDerivedViews();
+      }
+
+      function updateTimeReadout() {
+        els.timeReadout.textContent = formatDisplayTime(getCurrentTime()) + ' / ' + formatDisplayTime(getDurationFallback());
+      }
+
+      function findActiveCueId(time) {
+        for (let i = 0; i < cues.length; i++) {
+          const cue = cues[i];
+          if (time >= cue.start && time < cue.end) return cue.id;
+        }
+        return null;
+      }
+
+      function updateActiveCue() {
+        const time = getCurrentTime();
+        const nextActiveId = findActiveCueId(time);
+        if (nextActiveId === activeCueId) {
+          updateSubtitleOverlay(nextActiveId);
+          updateTargetControls();
+          return;
+        }
+
+        if (activeCueId != null) {
+          const oldRow = rowById.get(activeCueId);
+          if (oldRow) oldRow.classList.remove('active');
+        }
+        activeCueId = nextActiveId;
+        if (activeCueId != null) {
+          const newRow = rowById.get(activeCueId);
+          if (newRow) {
+            newRow.classList.add('active');
+            if (Date.now() > suppressAutoScrollUntil && !isCueTextareaFocused()) {
+              ignoreListScrollUntil = Date.now() + 200;
+              newRow.scrollIntoView({ block: 'nearest' });
+            }
+          }
+        }
+        updateSubtitleOverlay(nextActiveId);
+        updateTargetControls();
+      }
+
+      function updateSubtitleOverlay(cueId) {
+        if (cueId == null) {
+          els.subtitleOverlay.textContent = '';
+          return;
+        }
+        const cue = cues.find(item => item.id === cueId);
+        els.subtitleOverlay.textContent = cue ? cue.text : '';
+      }
+
+      function updateAllDerivedViews() {
+        maybeAutoPanTimeline();
+        updateTimeReadout();
+        updateActiveCue();
+        updatePlaybackButton();
+        updateTimelineControls();
+        scheduleTimelineDraw();
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function getTimelineVisibleDuration() {
+        const duration = getDurationFallback();
+        if (duration <= 0) return 1;
+        return duration / timelineZoom;
+      }
+
+      function clampTimelineView() {
+        const duration = getDurationFallback();
+        if (duration <= 0) {
+          timelineZoom = 1;
+          timelineStart = 0;
+          return;
+        }
+        timelineZoom = clamp(timelineZoom, TIMELINE_MIN_ZOOM, TIMELINE_MAX_ZOOM);
+        if (timelineZoom <= 1) {
+          timelineZoom = 1;
+          timelineStart = 0;
+          return;
+        }
+        const visible = duration / timelineZoom;
+        timelineStart = clamp(timelineStart, 0, Math.max(0, duration - visible));
+      }
+
+      function timelineXToTime(x, width) {
+        const duration = getDurationFallback();
+        if (duration <= 0) return 0;
+        clampTimelineView();
+        const visible = getTimelineVisibleDuration();
+        return clamp(timelineStart + (clamp(x, 0, width) / Math.max(1, width)) * visible, 0, duration);
+      }
+
+      function timelineTimeToX(time, width) {
+        clampTimelineView();
+        const visible = getTimelineVisibleDuration();
+        return ((time - timelineStart) / visible) * width;
+      }
+
+      function isNearTimelinePlayhead(x, width) {
+        return Math.abs(x - timelineTimeToX(getCurrentTime(), width)) <= 6;
+      }
+
+      function updateTimelineHoverCursor(event) {
+        if (timelineDrag) return;
+        const duration = getDurationFallback();
+        if (duration <= 0) {
+          els.timeline.classList.remove('playhead-hover');
+          return;
+        }
+        const rect = els.timeline.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        els.timeline.classList.toggle('playhead-hover', isNearTimelinePlayhead(x, rect.width));
+      }
+
+      function clearTimelineHoverCursor() {
+        if (!timelineDrag) els.timeline.classList.remove('playhead-hover');
+      }
+
+      function setTimelineScrubbing(active) {
+        els.timeline.classList.toggle('scrubbing', active);
+        if (active) {
+          els.timeline.classList.remove('playhead-hover');
+        }
+      }
+
+      function autoPanTimelineForScrub(x, width) {
+        if (timelineZoom <= 1) return;
+        const duration = getDurationFallback();
+        if (duration <= 0) return;
+        const edge = Math.min(48, width * 0.12);
+        if (edge <= 0) return;
+        const visible = getTimelineVisibleDuration();
+        let delta = 0;
+        if (x < edge) {
+          delta = -visible * 0.06 * clamp((edge - x) / edge, 0, 1);
+        } else if (x > width - edge) {
+          delta = visible * 0.06 * clamp((x - (width - edge)) / edge, 0, 1);
+        }
+        if (delta === 0) return;
+        timelineStart += delta;
+        clampTimelineView();
+      }
+
+      function scrubTimelineAt(event) {
+        const rect = els.timeline.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        autoPanTimelineForScrub(x, rect.width);
+        seek(timelineXToTime(x, rect.width));
+      }
+
+      function zoomTimelineAt(time, nextZoom) {
+        const duration = getDurationFallback();
+        if (duration <= 0) return;
+        const oldVisible = getTimelineVisibleDuration();
+        const anchorRatio = clamp((time - timelineStart) / oldVisible, 0, 1);
+        timelineZoom = clamp(nextZoom, TIMELINE_MIN_ZOOM, TIMELINE_MAX_ZOOM);
+        const newVisible = getTimelineVisibleDuration();
+        timelineStart = time - anchorRatio * newVisible;
+        clampTimelineView();
+        updateTimelineControls();
+        scheduleTimelineDraw();
+      }
+
+      function resetTimelineZoom() {
+        timelineZoom = 1;
+        timelineStart = 0;
+        updateTimelineControls();
+        scheduleTimelineDraw();
+      }
+
+      function maybeAutoPanTimeline() {
+        if (timelineZoom <= 1 || els.video.paused) return;
+        const duration = getDurationFallback();
+        if (duration <= 0) return;
+        const visible = getTimelineVisibleDuration();
+        const time = getCurrentTime();
+        if (time > timelineStart + visible * 0.8) {
+          timelineStart = time - visible * 0.35;
+          clampTimelineView();
+        } else if (time < timelineStart + visible * 0.2) {
+          timelineStart = time - visible * 0.2;
+          clampTimelineView();
+        }
+      }
+
+      function updateTimelineControls() {
+        const duration = getDurationFallback();
+        const hasDuration = duration > 0;
+        els.zoomOutBtn.disabled = !hasDuration || timelineZoom <= TIMELINE_MIN_ZOOM;
+        els.zoomInBtn.disabled = !hasDuration || timelineZoom >= TIMELINE_MAX_ZOOM;
+        els.zoomFitBtn.disabled = !hasDuration || timelineZoom === 1;
+      }
+
+      function scheduleTimelineDraw() {
+        if (rafTimelinePending) return;
+        rafTimelinePending = true;
+        requestAnimationFrame(() => {
+          rafTimelinePending = false;
+          drawTimeline();
+        });
+      }
+
+      function drawTimeline() {
+        const canvas = els.timeline;
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const width = Math.max(1, Math.floor(rect.width * dpr));
+        const height = Math.max(1, Math.floor(rect.height * dpr));
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+        const ctx = canvas.getContext('2d');
+        ctx.save();
+        ctx.scale(dpr, dpr);
+        const w = rect.width;
+        const h = rect.height;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#111317';
+        ctx.fillRect(0, 0, w, h);
+
+        const duration = getDurationFallback();
+        clampTimelineView();
+        const usableDuration = duration > 0 ? duration : 1;
+        const visible = getTimelineVisibleDuration();
+        const viewEnd = timelineStart + visible;
+        const scale = w / Math.max(0.001, visible);
+        const bandTop = 14;
+        const bandHeight = 18;
+        cues.forEach(cue => {
+          if (cue.end < timelineStart || cue.start > viewEnd) return;
+          const x = Math.max(0, Math.min(w, (cue.start - timelineStart) * scale));
+          const x2 = Math.max(0, Math.min(w, (cue.end - timelineStart) * scale));
+          const barWidth = Math.max(1, x2 - x);
+          ctx.fillStyle = cue.id === activeCueId ? '#50c2a8' : '#4a5361';
+          ctx.fillRect(x, bandTop, barWidth, bandHeight);
+          if (barWidth > 3) {
+            ctx.fillStyle = cue.id === activeCueId ? 'rgba(255,255,255,.32)' : 'rgba(255,255,255,.14)';
+            ctx.fillRect(x, bandTop, 1, bandHeight);
+          }
+        });
+
+        const playheadX = Math.max(0, Math.min(w, (getCurrentTime() - timelineStart) * scale));
+        ctx.fillStyle = '#f0ba45';
+        ctx.fillRect(playheadX - 1, 5, 2, h - 10);
+        ctx.fillStyle = 'rgba(240, 186, 69, .24)';
+        ctx.fillRect(playheadX - 4, 5, 8, h - 10);
+        if (timelineZoom > 1 && usableDuration > 0) {
+          const thumbX = (timelineStart / usableDuration) * w;
+          const thumbW = Math.max(18, (visible / usableDuration) * w);
+          ctx.fillStyle = 'rgba(255, 255, 255, .12)';
+          ctx.fillRect(0, h - 5, w, 2);
+          ctx.fillStyle = 'rgba(80, 194, 168, .62)';
+          ctx.fillRect(thumbX, h - 6, Math.min(thumbW, w - thumbX), 4);
+        }
+        ctx.restore();
+      }
+
+      function renderCueList() {
+        rowById = new Map();
+        els.cueList.textContent = '';
+        textEditUndoOpen.clear();
+        pendingAutoGrowTextareas = [];
+        if (cues.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'empty-state';
+          empty.textContent = 'SRTを開くか、ここへドロップ';
+          els.cueList.appendChild(empty);
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        cues.forEach((cue, index) => {
+          const row = createCueRow(cue, index);
+          fragment.appendChild(row);
+          rowById.set(cue.id, row);
+          if (index < cues.length - 1) {
+            fragment.appendChild(createMergeStrip(index));
+          }
+        });
+        els.cueList.appendChild(fragment);
+        requestAnimationFrame(() => {
+          autoGrowTextareasBatch(pendingAutoGrowTextareas);
+          pendingAutoGrowTextareas = [];
+        });
+        updateActiveCue();
+      }
+
+      function createCueRow(cue, index) {
+        const row = document.createElement('article');
+        row.className = 'cue-row';
+        if (cue.id === activeCueId) row.classList.add('active');
+        row.dataset.id = String(cue.id);
+        row.addEventListener('click', () => selectCue(cue.id));
+
+        const head = document.createElement('div');
+        head.className = 'cue-head';
+        row.appendChild(head);
+
+        const indexBox = document.createElement('div');
+        indexBox.className = 'cue-index';
+        indexBox.textContent = String(index + 1);
+        indexBox.title = 'この字幕へ移動';
+        indexBox.addEventListener('click', () => {
+          selectCue(cue.id);
+          seek(cue.start);
+        });
+        head.appendChild(indexBox);
+
+        const timeLabel = document.createElement('div');
+        timeLabel.className = 'cue-time-label';
+        timeLabel.textContent = formatCompactRange(cue);
+        timeLabel.title = 'この字幕へ移動';
+        timeLabel.addEventListener('click', () => {
+          selectCue(cue.id);
+          seek(cue.start);
+        });
+        head.appendChild(timeLabel);
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'cue-text';
+        textarea.value = cue.text;
+        textarea.rows = 1;
+        textarea.spellcheck = false;
+        textarea.addEventListener('focus', () => {
+          selectCue(cue.id);
+          trackCaret(cue.id, textarea);
+          textEditUndoOpen.delete(cue.id);
+        });
+        textarea.addEventListener('click', () => {
+          selectCue(cue.id);
+          trackCaret(cue.id, textarea);
+          scheduleCaretFollowSeek(cue.id);
+        });
+        textarea.addEventListener('keyup', event => {
+          trackCaret(cue.id, textarea);
+          if (isCaretNavigationKey(event)) scheduleCaretFollowSeek(cue.id);
+        });
+        textarea.addEventListener('input', () => {
+          const idx = indexById(cue.id);
+          if (idx < 0) return;
+          if (!textEditUndoOpen.has(cue.id)) {
+            pushUndoSnapshot();
+            textEditUndoOpen.add(cue.id);
+          }
+          cues[idx].text = textarea.value;
+          trackCaret(cue.id, textarea);
+          autoGrowTextarea(textarea);
+          setDirty(true);
+          scheduleAutosave();
+          if (cue.id === activeCueId) updateSubtitleOverlay(cue.id);
+        });
+        textarea.addEventListener('blur', () => {
+          trackCaret(cue.id, textarea);
+          textEditUndoOpen.delete(cue.id);
+          updateUndoRedoButtons();
+        });
+        row.appendChild(textarea);
+        pendingAutoGrowTextareas.push(textarea);
+
+        return row;
+      }
+
+      function createMergeStrip(index) {
+        const strip = document.createElement('div');
+        strip.className = 'merge-strip';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'merge-btn';
+        button.textContent = '⇧ 結合';
+        button.title = '上下の字幕を結合';
+        button.addEventListener('click', () => mergeWithNext(index));
+        strip.appendChild(button);
+        return strip;
+      }
+
+      function autoGrowTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 180) + 'px';
+      }
+
+      // 書き込みと読み取りを分離して強制リフローを1回に抑える(1000行超でも実用速度を保つ)
+      function autoGrowTextareasBatch(textareas) {
+        textareas.forEach(textarea => {
+          textarea.style.height = 'auto';
+        });
+        const heights = textareas.map(textarea => Math.min(textarea.scrollHeight, 180));
+        textareas.forEach((textarea, i) => {
+          textarea.style.height = heights[i] + 'px';
+        });
+      }
+
+      function cueById(id) {
+        return cues.find(cue => cue.id === id) || null;
+      }
+
+      function indexById(id) {
+        return cues.findIndex(cue => cue.id === id);
+      }
+
+      function selectCue(id) {
+        if (indexById(id) === -1) return;
+        lastSelectedCueId = id;
+        updateTargetControls();
+      }
+
+      function getTargetCueId() {
+        if (activeCueId != null && indexById(activeCueId) !== -1) return activeCueId;
+        if (lastSelectedCueId != null && indexById(lastSelectedCueId) !== -1) return lastSelectedCueId;
+        return null;
+      }
+
+      function getTargetIndex() {
+        const targetId = getTargetCueId();
+        return targetId == null ? -1 : indexById(targetId);
+      }
+
+      function isCueTextareaFocused() {
+        const active = document.activeElement;
+        return Boolean(active && active.tagName === 'TEXTAREA' && els.cueList.contains(active));
+      }
+
+      function trackCaret(cueId, textarea) {
+        const cue = cueById(cueId);
+        if (!cue || typeof textarea.selectionStart !== 'number') return;
+        const max = String(cue.text || '').length;
+        caretById.set(cueId, Math.max(0, Math.min(max, textarea.selectionStart)));
+      }
+
+      function isCaretNavigationKey(event) {
+        return event.key === 'ArrowLeft' ||
+          event.key === 'ArrowRight' ||
+          event.key === 'ArrowUp' ||
+          event.key === 'ArrowDown' ||
+          event.key === 'Home' ||
+          event.key === 'End' ||
+          event.key === 'PageUp' ||
+          event.key === 'PageDown';
+      }
+
+      function caretIndexFromTime(cue) {
+        const textLength = String(cue.text || '').length;
+        if (textLength === 0) return 0;
+        const duration = cue.end - cue.start;
+        if (duration <= 0) return Math.round(textLength / 2);
+        const ratio = Math.max(0, Math.min(1, (getCurrentTime() - cue.start) / duration));
+        return Math.max(0, Math.min(textLength, Math.round(textLength * ratio)));
+      }
+
+      function scheduleCaretFollowSeek(cueId) {
+        window.clearTimeout(caretSeekTimer);
+        caretSeekTimer = window.setTimeout(() => {
+          const cue = cueById(cueId);
+          if (!cue) return;
+          const textLength = Math.max(1, String(cue.text || '').length);
+          const caretIndex = caretById.has(cueId) ? caretById.get(cueId) : 0;
+          const ratio = Math.max(0, Math.min(1, caretIndex / textLength));
+          seek(cue.start + (cue.end - cue.start) * ratio);
+        }, CARET_SEEK_DELAY_MS);
+      }
+
+      function updateTargetControls() {
+        const hasTarget = getTargetCueId() != null;
+        els.startNowBtn.disabled = !hasTarget;
+        els.endNowBtn.disabled = !hasTarget;
+        els.splitTargetBtn.disabled = !hasTarget;
+        els.deleteTargetBtn.disabled = !hasTarget;
+      }
+
+      function setStart(index, time) {
+        if (!cues.length || !cues[index]) return;
+        mutate(() => {
+          cues[index].start = Math.max(0, Number(time) || 0);
+          if (cues[index].start > cues[index].end) cues[index].end = cues[index].start;
+        });
+      }
+
+      function setEnd(index, time) {
+        if (!cues.length || !cues[index]) return;
+        mutate(() => {
+          cues[index].end = Math.max(0, Number(time) || 0);
+          if (cues[index].start > cues[index].end) cues[index].end = cues[index].start;
+        });
+      }
+
+      function deleteCue(index) {
+        if (!cues.length || !cues[index]) return;
+        const deletedId = cues[index].id;
+        const replacementId = (cues[index + 1] || cues[index - 1] || {}).id || null;
+        mutate(() => {
+          cues.splice(index, 1);
+          caretById.delete(deletedId);
+          if (lastSelectedCueId === deletedId) lastSelectedCueId = replacementId;
+        });
+      }
+
+      function shouldInsertAsciiSpace(left, right) {
+        return /[A-Za-z0-9]$/.test(left) && /^[A-Za-z0-9]/.test(right);
+      }
+
+      function mergeWithNext(index) {
+        if (!cues.length || !cues[index] || !cues[index + 1]) return;
+        mutate(() => {
+          const first = cues[index];
+          const second = cues[index + 1];
+          const glue = shouldInsertAsciiSpace(first.text, second.text) ? ' ' : '';
+          first.end = second.end;
+          first.text = first.text + glue + second.text;
+          if (lastSelectedCueId === second.id) lastSelectedCueId = first.id;
+          caretById.delete(second.id);
+          cues.splice(index + 1, 1);
+        });
+      }
+
+      function splitAtIndex(index, charIndex, timeOrNull) {
+        if (!cues.length || !cues[index]) return;
+        const cue = cues[index];
+        const text = cue.text || '';
+        const safeCharIndex = Math.max(0, Math.min(text.length, Number(charIndex) || 0));
+        mutate(() => {
+          const target = cues[index];
+          const playhead = getCurrentTime();
+          let boundary;
+          if (Number.isFinite(timeOrNull)) {
+            boundary = Number(timeOrNull);
+          } else if (playhead > target.start && playhead < target.end) {
+            boundary = playhead;
+          } else {
+            const ratio = text.length ? safeCharIndex / text.length : 0.5;
+            boundary = target.start + (target.end - target.start) * ratio;
+          }
+          boundary = Math.max(target.start, Math.min(target.end, boundary));
+          const rightText = target.text.slice(safeCharIndex);
+          target.text = target.text.slice(0, safeCharIndex);
+          const oldEnd = target.end;
+          target.end = boundary;
+          cues.splice(index + 1, 0, {
+            id: nextCueId++,
+            start: boundary,
+            end: oldEnd,
+            text: rightText
+          });
+          lastSelectedCueId = target.id;
+        });
+      }
+
+      function setTargetBoundaryToNow(field) {
+        const index = getTargetIndex();
+        if (index < 0) return;
+        if (field === 'start') {
+          setStart(index, getCurrentTime());
+        } else {
+          setEnd(index, getCurrentTime());
+        }
+      }
+
+      function splitTargetCue() {
+        const index = getTargetIndex();
+        if (index < 0) return;
+        const cue = cues[index];
+        const charIndex = caretById.has(cue.id) ? caretById.get(cue.id) : caretIndexFromTime(cue);
+        splitAtIndex(index, charIndex, null);
+      }
+
+      // Cmd+Enter: テキスト入力中でも、その textarea のカーソル位置で分割する
+      function splitAtCaretShortcut() {
+        // クリック直後の追従シーク予約が分割後に飛ばないよう先に破棄
+        window.clearTimeout(caretSeekTimer);
+        const active = document.activeElement;
+        if (active && active.tagName === 'TEXTAREA' && els.cueList.contains(active)) {
+          const row = active.closest('.cue-row');
+          const index = row ? indexById(Number(row.dataset.id)) : -1;
+          if (index < 0) return;
+          const caret = typeof active.selectionStart === 'number' ? active.selectionStart : 0;
+          splitAtIndex(index, caret, null);
+          focusRightHalfAfterSplit(index);
+          return;
+        }
+        const index = getTargetIndex();
+        if (index < 0) return;
+        splitTargetCue();
+        focusRightHalfAfterSplit(index);
+      }
+
+      // 分割直後、右半分のテキスト先頭にフォーカスして連続分割できるようにする
+      function focusRightHalfAfterSplit(leftIndex) {
+        const right = cues[leftIndex + 1];
+        if (!right) return;
+        const row = rowById.get(right.id);
+        const textarea = row && row.querySelector('textarea');
+        if (!textarea) return;
+        textarea.focus();
+        textarea.setSelectionRange(0, 0);
+        window.clearTimeout(caretSeekTimer);
+      }
+
+      function deleteTargetCue() {
+        const index = getTargetIndex();
+        if (index >= 0) deleteCue(index);
+      }
+
+      function jumpCue(direction) {
+        const index = getTargetIndex();
+        if (index < 0) {
+          if (direction > 0 && cues[0]) {
+            selectCue(cues[0].id);
+            seek(cues[0].start);
+          }
+          return;
+        }
+        const nextIndex = index + direction;
+        if (!cues[nextIndex]) return;
+        selectCue(cues[nextIndex].id);
+        seek(cues[nextIndex].start);
+      }
+
+      function undo() {
+        if (undoStack.length === 0) return;
+        redoStack.push(cloneCues(cues));
+        cues = undoStack.pop();
+        normalizeAllCues();
+        setDirty(true);
+        renderCueList();
+        updateAllDerivedViews();
+        scheduleAutosave();
+        updateUndoRedoButtons();
+      }
+
+      function redo() {
+        if (redoStack.length === 0) return;
+        undoStack.push(cloneCues(cues));
+        cues = redoStack.pop();
+        normalizeAllCues();
+        setDirty(true);
+        renderCueList();
+        updateAllDerivedViews();
+        scheduleAutosave();
+        updateUndoRedoButtons();
+      }
+
+      function togglePlayPause() {
+        if (!els.video.src) return;
+        if (els.video.paused) {
+          els.video.play().catch(() => {});
+        } else {
+          els.video.pause();
+        }
+        updatePlaybackButton();
+      }
+
+      function updatePlaybackButton() {
+        els.playToggleBtn.disabled = !els.video.src;
+        els.playToggleBtn.textContent = els.video.paused ? '▶ 再生' : '⏸ 停止';
+      }
+
+      function isTypingTarget(target) {
+        if (!target) return false;
+        const name = target.tagName;
+        return name === 'INPUT' || name === 'TEXTAREA' || name === 'SELECT' || target.isContentEditable;
+      }
+
+      function handleKeydown(event) {
+        const cmd = event.metaKey || event.ctrlKey;
+        const key = event.key;
+        if (cmd) {
+          const lower = key.toLowerCase();
+          if (lower === 'z' && event.shiftKey) {
+            event.preventDefault();
+            redo();
+            return;
+          }
+          if (lower === 'z') {
+            event.preventDefault();
+            undo();
+            return;
+          }
+          if (lower === 'y') {
+            event.preventDefault();
+            redo();
+            return;
+          }
+          if (lower === 's') {
+            event.preventDefault();
+            saveSrt();
+            return;
+          }
+          if (key === 'Enter') {
+            event.preventDefault();
+            splitAtCaretShortcut();
+            return;
+          }
+        }
+
+        if (cmd || event.altKey) return;
+        if (isTypingTarget(event.target)) return;
+
+        if (key === 't' || key === 'T') {
+          event.preventDefault();
+          splitTargetCue();
+          return;
+        }
+        if (key === ' ' || key === 'Spacebar') {
+          event.preventDefault();
+          togglePlayPause();
+          return;
+        }
+        if (key === 'ArrowLeft') {
+          event.preventDefault();
+          seek(getCurrentTime() - (event.shiftKey ? 5 : 0.5));
+          return;
+        }
+        if (key === 'ArrowRight') {
+          event.preventDefault();
+          seek(getCurrentTime() + (event.shiftKey ? 5 : 0.5));
+          return;
+        }
+        if (key === 'ArrowUp') {
+          event.preventDefault();
+          jumpCue(-1);
+          return;
+        }
+        if (key === 'ArrowDown') {
+          event.preventDefault();
+          jumpCue(1);
+          return;
+        }
+        if (key === ',') {
+          event.preventDefault();
+          seek(getCurrentTime() - 1 / 30);
+          return;
+        }
+        if (key === '.') {
+          event.preventDefault();
+          seek(getCurrentTime() + 1 / 30);
+        }
+      }
+
+      function handleTimelineWheel(event) {
+        const duration = getDurationFallback();
+        if (duration <= 0) return;
+        event.preventDefault();
+        const rect = els.timeline.getBoundingClientRect();
+        const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+        const anchorTime = timelineXToTime(x, rect.width);
+        const factor = Math.pow(1.002, -event.deltaY);
+        zoomTimelineAt(anchorTime, timelineZoom * factor);
+      }
+
+      function handleTimelinePointerDown(event) {
+        if (event.button !== 0) return;
+        const rect = els.timeline.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const nearPlayhead = isNearTimelinePlayhead(x, rect.width);
+        const fitMode = timelineZoom === 1;
+        const mode = fitMode || nearPlayhead ? 'scrub' : 'pan';
+        timelineDrag = {
+          pointerId: event.pointerId,
+          mode,
+          fitMode,
+          nearPlayhead,
+          startX: event.clientX,
+          startTimelineStart: timelineStart,
+          rectWidth: rect.width,
+          moved: false
+        };
+        setTimelineScrubbing(mode === 'scrub');
+        if (els.timeline.setPointerCapture) els.timeline.setPointerCapture(event.pointerId);
+        event.preventDefault();
+      }
+
+      function handleTimelinePointerMove(event) {
+        if (!timelineDrag) {
+          updateTimelineHoverCursor(event);
+          return;
+        }
+        if (event.pointerId !== timelineDrag.pointerId) return;
+        const dx = event.clientX - timelineDrag.startX;
+        if (Math.abs(dx) >= 4) timelineDrag.moved = true;
+        if (timelineDrag.mode === 'scrub') {
+          scrubTimelineAt(event);
+        } else if (timelineDrag.moved && timelineZoom > 1) {
+          const visible = getTimelineVisibleDuration();
+          timelineStart = timelineDrag.startTimelineStart - (dx / Math.max(1, timelineDrag.rectWidth)) * visible;
+          clampTimelineView();
+          scheduleTimelineDraw();
+        }
+        event.preventDefault();
+      }
+
+      function handleTimelinePointerUp(event) {
+        if (!timelineDrag || event.pointerId !== timelineDrag.pointerId) return;
+        const rect = els.timeline.getBoundingClientRect();
+        const moved = timelineDrag.moved || Math.abs(event.clientX - timelineDrag.startX) >= 4;
+        if (!moved && (timelineDrag.mode === 'pan' || timelineDrag.fitMode)) {
+          const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+          seek(timelineXToTime(x, rect.width));
+        }
+        if (els.timeline.releasePointerCapture) {
+          try {
+            els.timeline.releasePointerCapture(event.pointerId);
+          } catch (error) {}
+        }
+        setTimelineScrubbing(false);
+        timelineDrag = null;
+        updateTimelineHoverCursor(event);
+        event.preventDefault();
+      }
+
+      function handleTimelinePointerCancel(event) {
+        if (timelineDrag && event.pointerId === timelineDrag.pointerId) {
+          setTimelineScrubbing(false);
+          timelineDrag = null;
+        }
+      }
+
+      function isSrtFile(file) {
+        return /\.(srt|txt)$/i.test(file.name || '') || /subrip|text\/plain/i.test(file.type || '');
+      }
+
+      function isSubtitleName(name) {
+        return /\.(srt|txt)$/i.test(name || '');
+      }
+
+      function isVideoFile(file) {
+        return /^video\//i.test(file.type || '') || /\.(mp4|m4v|mov|webm)$/i.test(file.name || '');
+      }
+
+      function handleFiles(files) {
+        Array.from(files || []).forEach(file => {
+          if (isSrtFile(file)) {
+            loadSrtFile(file, null);
+          } else if (isVideoFile(file)) {
+            loadVideoFile(file);
+          }
+        });
+      }
+
+      function captureDroppedSrtHandles(dataTransfer) {
+        const items = dataTransfer && dataTransfer.items;
+        if (!items) return;
+        Array.from(items).forEach(item => {
+          if (!item || item.kind !== 'file' || typeof item.getAsFileSystemHandle !== 'function') return;
+          const file = item.getAsFile && item.getAsFile();
+          if (!file || !isSrtFile(file)) return;
+          item.getAsFileSystemHandle().then(handle => {
+            if (!handle || handle.kind !== 'file' || !isSubtitleName(handle.name)) return;
+            // srtFileName は FileReader 完了後に入るためここでは比較できない。
+            // ドロップされたファイル自身の名前と照合する
+            if (handle.name === file.name) srtFileHandle = handle;
+          }).catch(() => {});
+        });
+      }
+
+      function showDropOverlay() {
+        els.dropOverlay.classList.add('show');
+      }
+
+      function hideDropOverlay() {
+        dragDepth = 0;
+        els.dropOverlay.classList.remove('show');
+      }
+
+      els.videoPickBtn.addEventListener('click', () => els.videoInput.click());
+      els.srtPickBtn.addEventListener('click', openSrtFile);
+      els.videoInput.addEventListener('change', () => {
+        handleFiles(els.videoInput.files);
+        els.videoInput.value = '';
+      });
+      els.srtInput.addEventListener('change', () => {
+        handleFiles(els.srtInput.files);
+        els.srtInput.value = '';
+      });
+      els.saveBtn.addEventListener('click', saveSrt);
+      els.exportBtn.addEventListener('click', exportSrt);
+      els.undoBtn.addEventListener('click', undo);
+      els.redoBtn.addEventListener('click', redo);
+      els.seekBackBtn.addEventListener('click', () => seek(getCurrentTime() - 0.5));
+      els.playToggleBtn.addEventListener('click', togglePlayPause);
+      els.seekForwardBtn.addEventListener('click', () => seek(getCurrentTime() + 0.5));
+      els.startNowBtn.addEventListener('click', () => setTargetBoundaryToNow('start'));
+      els.endNowBtn.addEventListener('click', () => setTargetBoundaryToNow('end'));
+      els.splitTargetBtn.addEventListener('click', splitTargetCue);
+      els.deleteTargetBtn.addEventListener('click', deleteTargetCue);
+      els.zoomOutBtn.addEventListener('click', () => zoomTimelineAt(getCurrentTime(), timelineZoom / 1.4));
+      els.zoomInBtn.addEventListener('click', () => zoomTimelineAt(getCurrentTime(), timelineZoom * 1.4));
+      els.zoomFitBtn.addEventListener('click', resetTimelineZoom);
+      els.restoreBtn.addEventListener('click', restoreAutosave);
+      els.discardRestoreBtn.addEventListener('click', discardAutosave);
+      els.rateSelect.addEventListener('change', () => {
+        els.video.playbackRate = Number(els.rateSelect.value) || 1;
+      });
+      els.video.addEventListener('loadedmetadata', () => {
+        updateTimeReadout();
+        scheduleTimelineDraw();
+      });
+      els.video.addEventListener('timeupdate', updateAllDerivedViews);
+      els.video.addEventListener('seeked', updateAllDerivedViews);
+      els.video.addEventListener('durationchange', updateAllDerivedViews);
+      els.video.addEventListener('emptied', updateAllDerivedViews);
+      els.video.addEventListener('play', updatePlaybackButton);
+      els.video.addEventListener('pause', updatePlaybackButton);
+      els.timeline.addEventListener('wheel', handleTimelineWheel, { passive: false });
+      els.timeline.addEventListener('pointerdown', handleTimelinePointerDown);
+      els.timeline.addEventListener('pointermove', handleTimelinePointerMove);
+      els.timeline.addEventListener('pointerup', handleTimelinePointerUp);
+      els.timeline.addEventListener('pointercancel', handleTimelinePointerCancel);
+      els.timeline.addEventListener('pointerleave', clearTimelineHoverCursor);
+      els.cueList.addEventListener('scroll', () => {
+        if (Date.now() < ignoreListScrollUntil) return;
+        suppressAutoScrollUntil = Date.now() + AUTO_SCROLL_PAUSE_MS;
+      }, { passive: true });
+      window.addEventListener('keydown', handleKeydown, true);
+      window.addEventListener('resize', scheduleTimelineDraw);
+
+      window.addEventListener('dragenter', event => {
+        event.preventDefault();
+        dragDepth++;
+        showDropOverlay();
+      });
+      window.addEventListener('dragover', event => {
+        event.preventDefault();
+        showDropOverlay();
+      });
+      window.addEventListener('dragleave', event => {
+        event.preventDefault();
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (dragDepth === 0) hideDropOverlay();
+      });
+      window.addEventListener('drop', event => {
+        event.preventDefault();
+        hideDropOverlay();
+        captureDroppedSrtHandles(event.dataTransfer);
+        handleFiles(event.dataTransfer.files);
+      });
+
+      window.__sakusaku = {
+        loadSrtText: function (str) {
+          srtFileName = srtFileName || 'testing.srt';
+          srtFileLastModified = 0;
+          updateFilenameDisplay();
+          loadSrtText(str, { skipRestoreCheck: true });
+        },
+        getSrtText: function () {
+          return serializeSrt(cues);
+        },
+        getCues: function () {
+          return cloneCues(cues);
+        },
+        mergeWithNext: mergeWithNext,
+        splitAt: splitAtIndex,
+        setStart: setStart,
+        setEnd: setEnd,
+        deleteCue: deleteCue,
+        undo: undo,
+        redo: redo,
+        seek: seek,
+        save: saveSrt,
+        _setFileHandleForTest: function (handle) {
+          srtFileHandle = handle || null;
+        }
+      };
+
+      renderCueList();
+      updateFilenameDisplay();
+      updateUndoRedoButtons();
+      updateAllDerivedViews();
+    })();
+  </script>
+</body>
+</html>
